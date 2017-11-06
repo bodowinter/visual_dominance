@@ -391,7 +391,3 @@ COHA_word_new_excl_sum <- COHA_word_new_excl %>%
 COHA_word_new_excl_sum %>% ggplot(aes(x = Year, y = RelFreq, col = Modality)) +
 	geom_line()
 
-
-
-
-## AVERAGE VISUAL STRENGTH
