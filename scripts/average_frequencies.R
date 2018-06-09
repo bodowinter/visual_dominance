@@ -31,8 +31,8 @@ strik <- read_csv('strik_lievers_2015.csv')
 
 ## Combine:
 
-xdata <- bind_rows(select(adjs, -PropertyBritish),
-	nouns, select(verbs, -RandomSet, -N))
+xdata <- bind_rows(dplyr::select(adjs, -PropertyBritish),
+	nouns, dplyr::select(verbs, -RandomSet, -N))
 
 ## Add POS information:
 
@@ -71,6 +71,8 @@ strik$FreqCELEX <- BLP[match(strik$Word, BLP$Word), ]$celex.frequency
 strik$FreqBNC <- BLP[match(strik$Word, BLP$Word), ]$bnc.frequency
 strik$FreqSUBTL_UK <- BLP[match(strik$Word, BLP$Word), ]$subtlex.frequency
 strik$FreqCOCA <- COCA[match(strik$Word, COCA$Word), ]$COCA
+
+
 
 
 ##------------------------------------------------------------------
@@ -126,6 +128,38 @@ summary(glm.nb(FreqSUBTL ~ ModalityExclusivity, xdata))
 ## Combine exclusives:
 
 xdata_excl <- bind_rows(adj_excl, noun_excl, verb_excl)
+
+
+
+##------------------------------------------------------------------
+## Addressing reviewer 2's concern:
+##------------------------------------------------------------------
+
+## Reviewer 2 asked about whether the way the word lists were constructed
+## could affect the main frequency result. To assess this, we can look at
+## the verbs, for which we have both a random and a non-random subset
+## (see description in Winter, 2016):
+
+verb_excl$RandomSet <- verbs[match(verb_excl$Word, verbs$Word), ]$RandomSet
+summary(glm.nb(FreqSUBTL ~ VisualStrengthMean,
+	data = filter(verb_excl, RandomSet == 'yes')))	# check random subset
+		# only 4 words
+summary(glm.nb(FreqSUBTL ~ VisualStrengthMean,
+	data = filter(verb_excl, RandomSet == 'no')))	# check non-random subset
+summary(glm.nb(FreqSUBTL ~ VisualStrengthMean * RandomSet,
+	data = verb_excl))	# check interaction
+
+## Also, check for verbs and nouns together (both randomly sampled):
+
+verbs_random <- filter(verbs, RandomSet == 'yes') %>%
+	dplyr::select(-RandomSet, -N)
+NV <- bind_rows(nouns, verbs_random)
+NV$FreqSUBTL <- SUBTLEX[match(NV$Word, SUBTLEX$Word), ]$FREQcount
+NV <- mutate(NV, Vis_c = scale(VisualStrengthMean, scale = FALSE),
+	Excl_c = scale(ModalityExclusivity, scale = FALSE))
+summary(glm.nb(FreqSUBTL ~ Vis_c * Excl_c,
+	data = NV))	# more visually exclusive words are more frequent
+# however, no main effect
 
 
 
@@ -206,10 +240,12 @@ xdata_excl <- mutate(xdata_excl,
 	Gus_z = Gus_z / sd(Gus_z))
 
 ## Conjoined analysis:
+## Reviewer 1 requested adding POS as a control variable
+## (there is not enough data to fit the interaction between POS and all strength variables):
 
 SUBTLEX.combined <- glm.nb(FreqSUBTL ~ Vis_z +
 	Aud_z + Gus_z +
-	Hap_z + Olf_z,
+	Hap_z + Olf_z + POS,
 	data = xdata_excl)
 summary(SUBTLEX.combined)
 
@@ -221,7 +257,22 @@ odTest(SUBTLEX.combined)
 
 vif(SUBTLEX.combined)
 
-## ALL:
+## Check whether there's an interaction with POS for vision:
+## Requested by reviewer 1:
+
+SUBTLEX_POS <- glm.nb(FreqSUBTL ~ Vis_z * POS,
+	data = xdata_excl)
+summary(SUBTLEX_POS)
+SUBTLEX_POS_no_int <- glm.nb(FreqSUBTL ~ Vis_z + POS,
+	data = xdata_excl)
+SUBTLEX_POS_no_vis <- glm.nb(FreqSUBTL ~ POS,
+	data = xdata_excl)
+anova(SUBTLEX_POS_no_vis,
+	SUBTLEX_POS_no_int, test = 'Chisq')	# main effect
+anova(SUBTLEX_POS_no_int,
+	SUBTLEX_POS, test = 'Chisq')	# interaction
+
+## ALL separate (sanity check):
 ## Model for 10 most exclusive adjectives:
 
 SUBTLEX.vis <- glm.nb(FreqSUBTL ~ Vis_z,
@@ -244,11 +295,63 @@ SUBTLEX.olf <- glm.nb(FreqSUBTL ~ Olf_z,
 	data = xdata_excl)
 summary(SUBTLEX.olf)
 
+## Addressing reviewer 1's concern, biasing words:
+
+dfbeta_vis <- numeric(nrow(xdata_excl))
+leave_one_out_p_vis <- numeric(nrow(xdata_excl))
+
+dfbeta_hap <- numeric(nrow(xdata_excl))
+leave_one_out_p_hap <- numeric(nrow(xdata_excl))
+
+for (i in 1:nrow(xdata_excl)) {
+	this_mdl <- glm.nb(FreqSUBTL ~ Vis_z +
+		Aud_z + Gus_z +
+		Hap_z + Olf_z,
+		data = xdata_excl[-i, ])
+	dfbeta_vis[i] <- summary(this_mdl)$coefficients['Vis_z', 'Estimate']
+	leave_one_out_p_vis[i] <- summary(this_mdl)$coefficients['Vis_z', 'Pr(>|z|)']
+
+	dfbeta_hap[i] <- summary(this_mdl)$coefficients['Hap_z', 'Estimate']
+	leave_one_out_p_hap[i] <- summary(this_mdl)$coefficients['Hap_z', 'Pr(>|z|)']
+	}
+hist(dfbeta_vis)
+hist(dfbeta_hap)
+range(dfbeta_vis)
+range(dfbeta_hap)
+any(leave_one_out_p_vis > 0.05)
+any(leave_one_out_p_hap > 0.05)
+leave_one_out_p_hap[leave_one_out_p_hap > 0.05]
+xdata_excl[(leave_one_out_p_hap > 0.05), ]
+
+## Addressing reviewer 1's concern, the role of POS:
+
+summary(xmdl_comb <- glm.nb(FreqSUBTL ~ Vis_z +
+	Aud_z + Gus_z +
+	Hap_z + Olf_z + POS,
+	data = xdata_excl))
 
 
 ##------------------------------------------------------------------
 ## Same plot, combined model (reported in paper):
 ##------------------------------------------------------------------
+
+## Define colors and modalities:
+
+mycols <- c('#f37058', '#efbe1b', '#f79038', '#425fac', '#30b77d')
+mymods <- c('Visual', 'Auditory', 'Haptic', 'Gustatory', 'Olfactory')
+
+## Load in images:
+
+setwd('/Users/winterb/Research/senses_sensory_modalities/visual_dominance/analysis/figures/')
+s1 <- readPNG('sight.png')
+s2 <- readPNG('sound.png')
+s3 <- readPNG('touch.png')
+s4 <- readPNG('taste.png')
+s5 <- readPNG('smell.png')
+
+## Define vector of names:
+
+sense_names <- str_c('s', 1:5)
 
 ## Position factor for modalities:
 

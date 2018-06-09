@@ -23,8 +23,8 @@ all_files <- list.files()
 
 xdata <- c()
 for (i in seq_along(all_files)) {
-	this_df <- read_csv(all_files[i])
-	these_counts <- this_df %>% group_by(Word, Register) %>% count()
+	suppressMessages(this_df <- read_csv(all_files[i]))
+	these_counts <- this_df %>% group_by(Word, POS, Lemma) %>% count()
 	these_counts$Year <- as.numeric(str_extract(all_files[i], '[0-9]+'))
 	xdata <- bind_rows(xdata,
 		these_counts)
@@ -32,8 +32,8 @@ for (i in seq_along(all_files)) {
 
 ## Write to file:
 
-setwd('/Users/winterb/Research/senses_sensory_modalities/viberg/brandnew_analysis/data/')
-write_csv(xdata, 'COHA_summary.csv')
+setwd('/Users/winterb/Research/senses_sensory_modalities/visual_dominance/analysis/data/')
+write_csv(xdata, 'COHA_summary_new_lemmatized.csv')
 
 
 

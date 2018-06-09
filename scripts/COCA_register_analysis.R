@@ -130,9 +130,9 @@ text(side = 1, x = 0.5, y = -1.2,
 
 ## Plot senses:
 
-text(xpd = NA,
-	x = -0.15, y = 5.45, font = 2, cex = 2,
-	labels = 'Order:')
+# text(xpd = NA,
+	# x = -0.15, y = 5.45, font = 2, cex = 2,
+	# labels = 'Order:')
 for (i in 1:5) {
 		rasterImage(get(sense_names[i]),
 				xleft = ((1:5 / 10) - 0.1)[i] - 0.034,

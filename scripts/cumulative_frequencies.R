@@ -141,6 +141,10 @@ sense_names <- str_c('s', 1:5)
 
 yfac <- 0.1
 
+## Redefine names:
+
+corpora <- c('SUBTLEX-US', 'COCA', 'HAL', 'Kučera-Francis', 'SUBTLEX-UK', 'CELEX', 'BNC')
+
 ## General plot:
 
 quartz('', 8, 6)
@@ -157,14 +161,14 @@ text(side = 1, x = 0.5, y = -2.2,
 
 ## Plot senses:
 
-text(xpd = NA,
-	x = -0.15, y = nrow(xtab) + 0.75, font = 2, cex = 2,
-	labels = 'Order:')
+# text(xpd = NA,
+	# x = -0.15, y = nrow(xtab) + 0.75, font = 2, cex = 2,
+	# labels = 'Order:')
 for (i in 1:5) {
 		rasterImage(get(sense_names[i]),
 				xleft = ((1:5 / 10) - 0.1)[i] - 0.034,
 				xright = ((1:5 / 10) - 0.1)[i] + 0.034,
-				ybottom = nrow(xtab) + 0.2, ytop = nrow(xtab) + 0.85, xpd = NA)				
+				ybottom = nrow(xtab) + 0.175, ytop = nrow(xtab) + 0.875, xpd = NA)				
 	}
 
 ## Loop through rectangle and plot:

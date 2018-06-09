@@ -158,14 +158,14 @@ text(x = 0.5, y = -0.8,
 
 ## Plot senses:
 
-text(xpd = NA,
-	x = -0.15, y = 3.45, font = 2, cex = 2,
-	labels = 'Order:')
+# text(xpd = NA,
+	# x = -0.15, y = 3.45, font = 2, cex = 2,
+	# labels = 'Order:')
 for (i in 1:5) {
 		rasterImage(get(sense_names[i]),
 				xleft = ((1:5 / 10) - 0.1)[i] - 0.034,
 				xright = ((1:5 / 10) - 0.1)[i] + 0.034,
-				ybottom = 3.2, ytop = 3.56, xpd = NA)				
+				ybottom = 3.21, ytop = 3.55, xpd = NA)				
 	}
 
 ## Loop through rectangle and plot:
